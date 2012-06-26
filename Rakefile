@@ -106,15 +106,26 @@ end
 
 task :score_collections do
   puts "\nscoring all collections"
-  Artist.all.each do |artist|
-    if artist.similar_ids.empty?
-      scores = []
-      Artist.all.each do |other_artist|
-        next if other_artist == artist || other_artist.collection.empty?
-        score = Jaccard.coefficient(artist.collection.ids, other_artist.collection.ids)
-        artist.add_similar(score, other_artist)
-      end
+  artist_list = ENV['NAME'] ? Artist.find(:name => ENV['NAME']) : Artist.all
+  artist_list.each do |artist|
+    # if artist.similar_ids.empty?
+    artist.clear_similar
+    scores = []
+    Artist.all.each do |other_artist|
+      next if other_artist == artist || other_artist.collection.empty?
+      score = Jaccard.coefficient(artist.collection.ids, other_artist.collection.ids)
+      artist.add_similar(score, other_artist)
     end
+    # end
+    print '.'
+  end
+  puts
+end
+
+task :trim_similar do
+  puts "\ntrimming similarity lists"
+  Artist.all.each do |artist|
+    artist.trim_similar(15)
     print '.'
   end
   puts
@@ -152,7 +163,7 @@ task :find_collection do
     rarity_score += album.in_collection_of.size.to_f
   end
   rarity_score /= a.collection.size
-  puts "\nrarity score: #{rarity_score}"
+  puts "\nrarity score: #{"%.2f" % rarity_score}"
   puts
 end
 
@@ -184,4 +195,10 @@ task :clear do
   Artist.all.each { |a| a.delete }
   Album.all.each { |a| a.delete }
   Track.all.each { |t| t.delete }
+end
+
+task :clear_similar do
+  artist = Artist.find(:name => ENV['NAME']).first
+  artist.clear_similar
+  puts "Similar now: #{artist.similar.inspect}"
 end
