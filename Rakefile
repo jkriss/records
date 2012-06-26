@@ -123,6 +123,23 @@ task :find_collection do
   end
 end
 
+task :score_collection do
+  artist = Artist.find(:name => ENV['NAME']).first
+  scores = []
+  Artist.all.each do |other_artist|
+    next if other_artist == artist || other_artist.collection.empty?
+    score = Jaccard.coefficient(artist.collection.ids, other_artist.collection.ids)
+    scores << Hashie::Mash.new(:artist => other_artist, :score => score) if score > 0
+  end
+  
+  scores.sort!{ |a,b| b.score <=> a.score }
+  
+  scores.each do |entry|
+    puts "#{entry.score}: #{entry.artist.name}"
+  end
+  
+end
+
 task :clear do
   Artist.all.each { |a| a.delete }
   Album.all.each { |a| a.delete }
