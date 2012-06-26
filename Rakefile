@@ -146,14 +146,22 @@ end
 
 task :find_collection do
   a = Artist.find(:name => ENV['NAME']).first
+  rarity_score = 0
   a.collection.each do |album|
     puts "#{album.name} by #{album.artist.name} (#{album.in_collection_of.size})"
+    rarity_score += album.in_collection_of.size.to_f
   end
+  rarity_score /= a.collection.size
+  puts "\nrarity score: #{rarity_score}"
+  puts
 end
 
 task :find_similar do
   artist = Artist.find(:name => ENV['NAME']).first
-  artist.similar(10).each { |artist| puts artist.name }
+  artist.similar(10).each do |other_artist| 
+    overlap = (artist.collection.ids & other_artist.collection.ids).size
+    puts "#{other_artist.name} (#{overlap})"
+  end
 end
 
 task :find_overlap do

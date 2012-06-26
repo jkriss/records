@@ -28,6 +28,7 @@ class SampleLoader
   end
   
   def self.normalize_name(name)
+    # TODO collapse multiple consecutive spaces
     # undo Last, First form
     if matches = /([^,()]+), ([^()]*+)/.match(name)
       "#{matches[2]} #{matches[1]}"
