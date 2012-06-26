@@ -17,7 +17,7 @@ def find_or_create(klass, args)
 end
 
 task :load_samples do
-  %w{load_artists load_albums load_tracks}.each do |task|
+  %w{load_artists load_albums load_tracks load_collections load_inverse_collections}.each do |task|
     Rake::Task[task].execute
   end
 end
@@ -90,6 +90,34 @@ task :load_collections do
       end
     end
   end
+  puts
+end
+
+task :load_inverse_collections do
+  puts "\nloading inverse collections"
+  Artist.all.each do |artist|
+    print '.'
+    artist.collection.each do |album|
+      album.in_collection_of.add(artist) unless album.in_collection_of.include?(artist)
+    end
+  end
+  puts
+end
+
+task :score_collections do
+  puts "\nscoring all collections"
+  Artist.all.each do |artist|
+    if artist.similar_ids.empty?
+      scores = []
+      Artist.all.each do |other_artist|
+        next if other_artist == artist || other_artist.collection.empty?
+        score = Jaccard.coefficient(artist.collection.ids, other_artist.collection.ids)
+        artist.add_similar(score, other_artist)
+      end
+    end
+    print '.'
+  end
+  puts
 end
 
 task :find_artist do
@@ -119,25 +147,29 @@ end
 task :find_collection do
   a = Artist.find(:name => ENV['NAME']).first
   a.collection.each do |album|
+    puts "#{album.name} by #{album.artist.name} (#{album.in_collection_of.size})"
+  end
+end
+
+task :find_similar do
+  artist = Artist.find(:name => ENV['NAME']).first
+  artist.similar(10).each { |artist| puts artist.name }
+end
+
+task :find_overlap do
+  a = Artist.find(:name => ENV['A']).first
+  b = Artist.find(:name => ENV['B']).first
+  albums = a.collection.to_a & b.collection.to_a
+  albums.each do |album|
     puts "#{album.name} by #{album.artist.name}"
   end
 end
 
-task :score_collection do
-  artist = Artist.find(:name => ENV['NAME']).first
-  scores = []
-  Artist.all.each do |other_artist|
-    next if other_artist == artist || other_artist.collection.empty?
-    score = Jaccard.coefficient(artist.collection.ids, other_artist.collection.ids)
-    scores << Hashie::Mash.new(:artist => other_artist, :score => score) if score > 0
+task :in_collection_of do
+  a = Album.find(:name => ENV['NAME']).first
+  a.in_collection_of.each do |artist|
+    puts artist.name
   end
-  
-  scores.sort!{ |a,b| b.score <=> a.score }
-  
-  scores.each do |entry|
-    puts "#{entry.score}: #{entry.artist.name}"
-  end
-  
 end
 
 task :clear do

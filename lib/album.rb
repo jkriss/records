@@ -5,6 +5,8 @@ class Album < Ohm::Model
   reference :artist, :Artist
   set :tracks, :Track
   
+  set :in_collection_of, :Artist
+  
   index :name
   
 end
